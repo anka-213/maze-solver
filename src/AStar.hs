@@ -99,9 +99,6 @@ pattern MinView k p v w <- (OrdPSQ.minView -> Just (k, p, v, w))
 
 -- | Run a single step of A*
 stepAStar :: AStarState Matrix -> Maybe (AStarState Matrix)
--- stepAStar AStarState {maze, todo, goal}
---     | Nothing <- OrdPSQ.minView todo = Nothing
---     | Just (pos, _, (), todo') <- OrdPSQ.minView todo =
 stepAStar state@AStarState {maze, todo = MinView pos _ (cost,parent) todo, goal, visited} 
     | maze Mat.! pos == End =
         Just state
@@ -133,11 +130,6 @@ stepAStar state@AStarState {maze, todo = MinView pos _ (cost,parent) todo, goal,
                 prio = cost' + heuristic pos' goal
 
 stepAStar _ = Nothing
-            -- (\pos' -> maze Mat.! pos')
-            -- Check out neighbors of pos
-            -- Update neighbors in todo-list
-            -- update in matrix
-        -- minView :: (Ord k, Ord p) => OrdPSQ k p v -> Maybe (k, p, v, OrdPSQ k p v)
 
 -- | Solve a maze using A* and return the optimal path
 runAStar :: Maze -> Maybe [Pos]

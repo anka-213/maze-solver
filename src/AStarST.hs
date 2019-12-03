@@ -17,6 +17,7 @@ import qualified Data.Set as Set
 import qualified Data.Vector.Unboxed as V
 import           Control.Monad.ST
 import           Control.Monad (filterM)
+import           Control.Monad.Primitive (PrimMonad, PrimState)
 
 import Maze
 -- * A star algorithm
@@ -74,7 +75,7 @@ findIdxMatrix prec = V.map fst . V.filter (prec . snd) . Mat.flatten . Mat.imap 
 findStart :: Pos -> Maze -> [(Pos, Distance, (Distance, Maybe Pos))]
 findStart goal maze = [ (pos, heuristic goal pos , (0, Nothing)) | pos <- V.toList . findIdxMatrix (== Start) $ maze]
 
-initAstar :: Maze -> ST s (AStarState (MMatrix s))
+initAstar :: PrimMonad m => Maze -> m (AStarState (MMatrix (PrimState m)))
 initAstar maze = do
     maze' <- Mat.thaw maze
     pure $ AStarState
@@ -98,7 +99,8 @@ pattern MinView k p v w <- (OrdPSQ.minView -> Just (k, p, v, w))
 -- stepAStar AStarState {maze, todo, goal}
 --     | Nothing <- OrdPSQ.minView todo = Nothing
 --     | Just (pos, _, (), todo') <- OrdPSQ.minView todo =
-stepAStar :: AStarState (MMatrix s) -> ST s (Maybe (AStarState (MMatrix s)))
+stepAStar :: PrimMonad m => AStarState (MMatrix (PrimState m)) -> 
+                            m (Maybe (AStarState (MMatrix (PrimState m))))
 -- stepAStar AStarState {maze, todo, goal}
 --     | Nothing <- OrdPSQ.minView todo = Nothing
 --     | Just (pos, _, (), todo') <- OrdPSQ.minView todo =
@@ -120,7 +122,7 @@ stepAStar state@AStarState {maze, todo = MinView pos _ (cost,parent) todo, goal,
             , visited = Map.insert pos (cost,parent) visited
             }
     where
-        isAvailable :: MMatrix s MazePixel -> Pos -> ST s Bool
+        isAvailable :: PrimMonad m => MMatrix (PrimState m) MazePixel -> Pos -> m Bool
         isAvailable maze' pos' = do
             cell <- MMat.read maze' pos'
             pure $ case cell of
