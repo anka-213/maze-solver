@@ -7,7 +7,7 @@ module Maze where
 import Data.Matrix.Unboxed (Matrix)
 -- import qualified Data.Matrix as Mat
 import qualified Data.Matrix.Unboxed as Mat
--- import Data.Word
+import Data.Word
 import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Unboxed as VU
 import qualified Data.Vector.Generic as VG
@@ -17,8 +17,8 @@ type Maze = Matrix MazePixel
 data MazePixel = Free | Blocked | Start | End | Avoid
     deriving (Eq, Enum)
 
-newtype instance VU.Vector MazePixel = V_MazePixel (VU.Vector Int)
-newtype instance VU.MVector s MazePixel = MV_MazePixel (VU.MVector s Int)
+newtype instance VU.Vector MazePixel = V_MazePixel (VU.Vector Word8)
+newtype instance VU.MVector s MazePixel = MV_MazePixel (VU.MVector s Word8)
 
 -- deriving via Int instance VGM.MVector VU.MVector MazePixel
 -- deriving via Int instance VG.Vector VU.Vector MazePixel
@@ -28,15 +28,15 @@ instance VGM.MVector VU.MVector MazePixel where
     basicOverlaps (MV_MazePixel v1) (MV_MazePixel v2) = VGM.basicOverlaps v1 v2
     basicUnsafeNew n = MV_MazePixel <$> VGM.basicUnsafeNew n
     basicInitialize (MV_MazePixel v) = VGM.basicInitialize v
-    basicUnsafeRead (MV_MazePixel v) i = toEnum <$> VGM.basicUnsafeRead v i
-    basicUnsafeWrite (MV_MazePixel v) i x = VGM.basicUnsafeWrite v i (fromEnum x)
+    basicUnsafeRead (MV_MazePixel v) i = toEnum . fromIntegral <$> VGM.basicUnsafeRead v i
+    basicUnsafeWrite (MV_MazePixel v) i x = VGM.basicUnsafeWrite v i (fromIntegral $ fromEnum x)
 
 instance VG.Vector VU.Vector MazePixel where
     basicUnsafeFreeze (MV_MazePixel v) = V_MazePixel <$> VG.basicUnsafeFreeze v
     basicUnsafeThaw (V_MazePixel v) = MV_MazePixel <$> VG.basicUnsafeThaw v
     basicLength (V_MazePixel v) = VG.basicLength v
     basicUnsafeSlice i j (V_MazePixel v) = V_MazePixel (VG.basicUnsafeSlice i j v)
-    basicUnsafeIndexM (V_MazePixel v) i = toEnum <$> VG.basicUnsafeIndexM v i
+    basicUnsafeIndexM (V_MazePixel v) i = toEnum . fromIntegral <$> VG.basicUnsafeIndexM v i
 
 instance VU.Unbox MazePixel
 
