@@ -1,0 +1,57 @@
+name:                maze-solver
+version:             0.1.0.0
+github:              "anka-213/maze-solver"
+license:             BSD3
+author:              "Andreas Källberg"
+maintainer:          "anka.213@gmail.com"
+copyright:           "(c) 2019 Andreas Källberg"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/anka-213/maze-solver#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- matrices
+- JuicyPixels
+- bytestring
+- vector
+- psqueues
+- containers
+
+library:
+  source-dirs: src
+  ghc-options:
+    - -Wall
+
+executables:
+  maze-solver-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -O2
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - maze-solver
+
+tests:
+  maze-solver-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - maze-solver
