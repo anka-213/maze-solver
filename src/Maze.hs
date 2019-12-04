@@ -46,7 +46,7 @@ avoidWalls maze = Mat.imap avoid maze
     avoid :: Pos -> MazePixel -> MazePixel
     avoid _ Blocked = Blocked
     avoid _ Avoid = Avoid
-    avoid pos _ | nearWall = Avoid
+    avoid pos Free | nearWall = Avoid
         where
             neighs = (maze Mat.!) <$> neighbors 4 (Mat.dim maze) pos
             nearWall = any (\x -> x == Blocked || x == Avoid) neighs
