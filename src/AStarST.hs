@@ -11,8 +11,8 @@ import           Data.Matrix.Unboxed (Matrix)
 import qualified Data.Matrix.Unboxed as Mat
 import           Data.Matrix.Unboxed.Mutable (MMatrix)
 import qualified Data.Matrix.Unboxed.Mutable as MMat
-import qualified Data.OrdPSQ as OrdPSQ
-import           Data.OrdPSQ (OrdPSQ)
+import qualified Data.HashPSQ as HashPSQ
+import           Data.HashPSQ (HashPSQ)
 import qualified Data.Set as Set
 import qualified Data.Vector.Unboxed as V
 import           Control.Monad.ST
@@ -22,7 +22,7 @@ import           Control.Monad.Primitive (PrimMonad, PrimState)
 import Maze
 -- * A star algorithm
 
-type TodoList = OrdPSQ Pos Distance (Distance, Maybe Pos)
+type TodoList = HashPSQ Pos Distance (Distance, Maybe Pos)
 type VisitedMap = Map.Map Pos (Distance, Maybe Pos)
 
 data AStarState matrix = AStarState
@@ -55,7 +55,7 @@ showAStar AStarState {maze, todo, visited} = Mat.imap fun maze
         fun :: Pos -> MazePixel -> MazePixel
         fun pos _ | Map.member pos visited = End
         fun _pos End = End
-        fun pos _ | OrdPSQ.member pos todo = Start
+        fun pos _ | HashPSQ.member pos todo = Start
         fun _ x = x
 -- showAStar :: AStarState Matrix -> Matrix AStarCell
 -- showAStar AStarState {maze, todo, visited} = Mat.imap fun maze
@@ -63,7 +63,7 @@ showAStar AStarState {maze, todo, visited} = Mat.imap fun maze
 --         fun :: Pos -> MazePixel -> AStarCell
 --         fun pos _ | Just (cost, _parent) <- Map.lookup pos visited = Closed cost
 --         fun pos End = Goal
---         fun pos _ | Just (_prio, (cost,_parent)) <- OrdPSQ.lookup pos todo = Open cost
+--         fun pos _ | Just (_prio, (cost,_parent)) <- HashPSQ.lookup pos todo = Open cost
 --         fun pos Free = Unexplored
 --         fun pos _ = Unavailable
 
@@ -84,7 +84,7 @@ initAstar maze = do
     parents <- Mat.thaw $ Mat.fromVector (r,c) $ V.replicate (r*c) (False, (0,0))
     pure $ AStarState
         { maze = maze' -- Mat.map go maze
-        , todo = OrdPSQ.fromList $ findStart goal maze
+        , todo = HashPSQ.fromList $ findStart goal maze
         , goal = findEnd maze
         , visited = Map.empty
         , parents = parents
@@ -98,17 +98,17 @@ initAstar maze = do
         -- go End = Unexplored
         -- go Other = Unavailable
 
-pattern MinView :: (Ord k, Ord p) => k -> p -> v -> OrdPSQ k p v -> OrdPSQ k p v
-pattern MinView k p v w <- (OrdPSQ.minView -> Just (k, p, v, w))
+pattern MinView :: (Ord p) => Pos -> p -> v -> HashPSQ Pos p v -> HashPSQ Pos p v
+pattern MinView k p v w <- (HashPSQ.minView -> Just (k, p, v, w))
 
 -- stepAStar AStarState {maze, todo, goal}
---     | Nothing <- OrdPSQ.minView todo = Nothing
---     | Just (pos, _, (), todo') <- OrdPSQ.minView todo =
+--     | Nothing <- HashPSQ.minView todo = Nothing
+--     | Just (pos, _, (), todo') <- HashPSQ.minView todo =
 stepAStar :: PrimMonad m => AStarState (MMatrix (PrimState m)) -> 
                             m (Maybe (AStarState (MMatrix (PrimState m))))
 -- stepAStar AStarState {maze, todo, goal}
---     | Nothing <- OrdPSQ.minView todo = Nothing
---     | Just (pos, _, (), todo') <- OrdPSQ.minView todo =
+--     | Nothing <- HashPSQ.minView todo = Nothing
+--     | Just (pos, _, (), todo') <- HashPSQ.minView todo =
 stepAStar state@AStarState {done = Just _} = pure $ Just state
 stepAStar state@AStarState {maze, todo = MinView pos _ (cost,parent) todo, goal, visited} = do
     cell <- MMat.read maze pos
@@ -137,8 +137,8 @@ stepAStar state@AStarState {maze, todo = MinView pos _ (cost,parent) todo, goal,
         -- validNeighbors = filter (`Map.notMember` visited) . filter isAvailable $ neighbors maze pos
 
         -- Insert a neighbor unless it was already there
-        updateTodo :: OrdPSQ Pos Distance (Distance, Maybe Pos) -> Pos -> OrdPSQ Pos Distance (Distance, Maybe Pos)
-        updateTodo queue pos' = case OrdPSQ.insertView pos' prio (cost', Just pos) queue of
+        updateTodo :: HashPSQ Pos Distance (Distance, Maybe Pos) -> Pos -> HashPSQ Pos Distance (Distance, Maybe Pos)
+        updateTodo queue pos' = case HashPSQ.insertView pos' prio (cost', Just pos) queue of
             (Just (prio', _), _queue') | prio' <= prio -> queue  -- The old value was better
             (_, queue') -> queue'
             where
@@ -150,7 +150,7 @@ stepAStar _ = pure Nothing
             -- Check out neighbors of pos
             -- Update neighbors in todo-list
             -- update in matrix
-        -- minView :: (Ord k, Ord p) => OrdPSQ k p v -> Maybe (k, p, v, OrdPSQ k p v)
+        -- minView :: (Ord k, Ord p) => HashPSQ k p v -> Maybe (k, p, v, HashPSQ k p v)
 
 runAStar :: Maze -> Maybe [Pos]
 runAStar maze = runST $ go =<< (Just <$> initAstar maze)
