@@ -48,7 +48,7 @@ avoidWalls maze = Mat.imap avoid maze
     avoid _ Avoid = Avoid
     avoid pos _ | nearWall = Avoid
         where
-            neighs = (maze Mat.!) <$> neighbors (Mat.dim maze) pos
+            neighs = (maze Mat.!) <$> neighbors 4 (Mat.dim maze) pos
             nearWall = any (\x -> x == Blocked || x == Avoid) neighs
     avoid _ x = x
 
@@ -87,8 +87,8 @@ heuristic (x1,y1) (x2,y2) = round . (*(10::Double)) . sqrt . fromIntegral $ (x1 
 distance :: Pos -> Pos -> Distance
 distance = heuristic
 
-neighbors :: Bounds -> Pos -> [Pos]
-neighbors maze pos = filter (inBounds maze) $ map (add pos)
+neighbors :: Int -> Bounds -> Pos -> [Pos]
+neighbors n maze pos = filter (inBounds maze) $ map (add pos. onBoth (*n))
         [(-1,-1), (-1,0), (-1,1)
         ,( 0,-1),         ( 0,1)
         ,( 1,-1), ( 1,0), ( 1,1)

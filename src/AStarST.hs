@@ -119,7 +119,7 @@ stepAStar state@AStarState {maze, todo = MinView pos _ (cost,parent) todo, goal,
             , done = Just pos
             }
     else do
-        validNeighbors <- filterM (isAvailable maze) $ neighbors (MMat.dim maze) pos
+        validNeighbors <- filterM (isAvailable maze) $ neighbors 2 (MMat.dim maze) pos
         let todo'' = foldl' updateTodo todo validNeighbors
         MMat.write maze pos Avoid
         pure $ Just state
@@ -195,6 +195,18 @@ runAStarTrace action interval = go 0 <=< fmap Just . initAstar
             Nothing -> [pos]
             Just pos' -> pos : unwind visited pos'
 
+drawPath' :: Maze -> [Pos] -> Maze
+drawPath' maze path = runST $ do
+    maze' <- Mat.thaw maze
+    mapM_ (fillPath maze') path
+    Mat.freeze maze'
+
+  where
+    fillPath :: PrimMonad m => MMatrix (PrimState m) MazePixel -> Pos -> m ()
+    fillPath maze' pos = do
+        MMat.write maze' pos End
+        mapM_ (\p -> MMat.write maze' p End) $ neighbors 1 (MMat.dim maze') pos
+
 drawPath :: Maze -> [Pos] -> Maze
 drawPath maze path = Mat.imap upd maze
     where
@@ -205,4 +217,4 @@ drawPath maze path = Mat.imap upd maze
                      | otherwise = cell
 
 drawAStar :: Maze -> Maybe Maze
-drawAStar maze = drawPath maze <$> runAStar maze
+drawAStar maze = drawPath' maze <$> runAStar maze

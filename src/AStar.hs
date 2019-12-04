@@ -117,7 +117,7 @@ stepAStar state@AStarState {maze, todo = MinView pos _ (cost,parent) todo, goal,
                 Free -> True
                 End -> True
                 _ -> False
-        validNeighbors = filter (`Map.notMember` visited) . filter isAvailable $ neighbors (Mat.dim maze) pos
+        validNeighbors = filter (`Map.notMember` visited) . filter isAvailable $ neighbors 1 (Mat.dim maze) pos
         todo'' = foldl' updateTodo todo validNeighbors
 
         -- Insert a neighbor unless it was already there

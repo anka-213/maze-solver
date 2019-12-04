@@ -6,6 +6,7 @@ module Lib
     -- , getAStar
     , solveTraceMaze
     , saveMaze
+    , solveMaze
     ) where
 
 import qualified Codec.Picture.Png as Png
@@ -17,6 +18,7 @@ import qualified Data.Matrix.Unboxed as Mat
 import Data.Matrix.Unboxed (Matrix)
 import qualified Data.Vector.Unboxed as VU
 import Data.Maybe (fromMaybe)
+import Control.Exception (evaluate)
 import Maze
 import AStarST
 
@@ -37,6 +39,7 @@ someFunc = do
 solveMazeFile :: FilePath -> FilePath -> IO ()
 solveMazeFile from to = do
     m <- solveMaze from -- "big-maze.png"
+    _ <- evaluate m
     BL.writeFile to m -- "big-maze-solved.png"
 
 solveTraceMaze :: FilePath -> FilePath -> FilePath -> IO ()
@@ -62,7 +65,7 @@ getTinyMaze = getMaze "img/tiny-maze.png"
 -- getAStar = initAstar <$> getTinyMaze
 
 solveMaze :: FilePath -> IO BL.ByteString
-solveMaze fp = mazeToImageBS . fromMaybe (error "Unsolvable maze") . drawAStar <$> getMaze fp
+solveMaze fp = mazeToImageBS . fromMaybe (error "Unsolvable maze") . drawAStar . avoidWalls <$> getMaze fp
 
 imageToMatrix :: (Pixel a, VU.Unbox a) => Image a -> Matrix a
 imageToMatrix img = Mat.generate (imageHeight img, imageWidth img) (\(x,y) -> pixelAt img y x)
