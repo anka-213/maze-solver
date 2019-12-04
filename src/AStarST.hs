@@ -16,7 +16,7 @@ import           Data.OrdPSQ (OrdPSQ)
 import qualified Data.Set as Set
 import qualified Data.Vector.Unboxed as V
 import           Control.Monad.ST
-import           Control.Monad (filterM)
+import           Control.Monad (filterM, (<=<))
 import           Control.Monad.Primitive (PrimMonad, PrimState)
 
 import Maze
@@ -30,11 +30,13 @@ data AStarState matrix = AStarState
     , todo :: !TodoList
     , goal :: !Pos
     , visited :: !VisitedMap
+    , parents :: !(matrix (Bool, Pos))
     , done :: !(Maybe Pos)
     } -- TODO: State when done
  
 -- deriving instance Show (matrix AStarCell) => Show (AStarState matrix)
-deriving instance Show (matrix MazePixel) => Show (AStarState matrix)
+deriving instance (Show (matrix MazePixel), Show (matrix (Bool, Pos))) => Show (AStarState matrix)
+-- deriving instance Show (AStarState Matrix)
 
 
 data AStarCell = Open !GVal | Closed !GVal | Unexplored | Unavailable | Goal
@@ -78,11 +80,14 @@ findStart goal maze = [ (pos, heuristic goal pos , (0, Nothing)) | pos <- V.toLi
 initAstar :: PrimMonad m => Maze -> m (AStarState (MMatrix (PrimState m)))
 initAstar maze = do
     maze' <- Mat.thaw maze
+    let (r,c) = Mat.dim maze
+    parents <- Mat.thaw $ Mat.fromVector (r,c) $ V.replicate (r*c) (False, (0,0))
     pure $ AStarState
         { maze = maze' -- Mat.map go maze
         , todo = OrdPSQ.fromList $ findStart goal maze
         , goal = findEnd maze
         , visited = Map.empty
+        , parents = parents
         , done = Nothing
         }
     where
@@ -160,12 +165,44 @@ runAStar maze = runST $ go =<< (Just <$> initAstar maze)
             Nothing -> [pos]
             Just pos' -> pos : unwind visited pos'
 
-drawAStar :: Maze -> Maybe Maze
-drawAStar maze | Just path <- runAStar maze =
-    let
+-- traceState :: FilePath -> AStarState (MMatrix RealWorld) -> IO ()
+-- traceState fileName mat =
+
+convTrace :: Maze -> Maze
+convTrace = Mat.map go
+  where
+    go :: MazePixel -> MazePixel
+    go Avoid = End
+    go x = x
+
+runAStarTrace :: (Int -> Maze -> IO ()) -> Int -> Maze -> IO (Maybe [Pos])
+runAStarTrace action interval = go 0 <=< fmap Just . initAstar
+    where
+        go :: Int -> Maybe (AStarState (MMatrix RealWorld)) -> IO (Maybe [Pos])
+        go n (Just AStarState {visited, done = Just pos, maze}) = do
+            action (( n`div`interval ) + 1) . convTrace =<< Mat.freeze maze
+            pure . Just $ reverse $ unwind visited pos
+        go n (Just state)
+            | n `mod` interval == 0 = do
+                stepped <- stepAStar state
+                maybe (pure ()) (action (n`div`interval) . convTrace <=< Mat.freeze . maze ) stepped
+                go (n+1) stepped
+            | otherwise = go (n+1) =<< stepAStar state
+        go _ Nothing = pure Nothing
+
+        unwind :: Map.Map Pos (Distance, Maybe Pos) -> Pos -> [Pos]
+        unwind visited pos = case snd =<< Map.lookup pos visited of
+            Nothing -> [pos]
+            Just pos' -> pos : unwind visited pos'
+
+drawPath :: Maze -> [Pos] -> Maze
+drawPath maze path = Mat.imap upd maze
+    where
         pathSet = Set.fromList path
+
         upd :: Pos -> MazePixel -> MazePixel
         upd pos cell | Set.member pos pathSet = End
                      | otherwise = cell
-    in  Just $ Mat.imap upd maze
-drawAStar _ = Nothing
+
+drawAStar :: Maze -> Maybe Maze
+drawAStar maze = drawPath maze <$> runAStar maze

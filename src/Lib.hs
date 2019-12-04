@@ -4,6 +4,7 @@ module Lib
     , solveMazeFile
     , getTinyMaze
     -- , getAStar
+    , solveTraceMaze
     , saveMaze
     ) where
 
@@ -37,6 +38,16 @@ solveMazeFile :: FilePath -> FilePath -> IO ()
 solveMazeFile from to = do
     m <- solveMaze from -- "big-maze.png"
     BL.writeFile to m -- "big-maze-solved.png"
+
+solveTraceMaze :: FilePath -> FilePath -> FilePath -> IO ()
+solveTraceMaze from to traceFile = do
+    m <- getMaze from
+    let traceAct n = saveMaze (traceFile ++ "-" ++ show n ++ ".png")
+    x <- runAStarTrace traceAct 100000 m
+    let img = mazeToImageBS . drawPath m $ fromMaybe (error "Unsolvable maze") x
+    BL.writeFile to img
+    pure ()
+
 
 getMaze :: FilePath -> IO Maze
 getMaze fp = stringToMaze <$> BS.readFile fp
