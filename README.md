@@ -21,5 +21,3 @@ Build and run the program with
 
 - It is currently pretty slow on large images. ~30s on the example above.
 - I am planning to make fetch mazes from @mazeaday and publish the solution automatically
-- Add an option to avoid walls so the output looks nicer.
-- Make the solution line thicker so you can see it
