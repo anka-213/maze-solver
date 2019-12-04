@@ -14,7 +14,7 @@ import qualified Data.Vector.Generic as VG
 import qualified Data.Vector.Generic.Mutable as VGM
 
 type Maze = Matrix MazePixel
-data MazePixel = Free | Blocked | Start | End | Avoid
+data MazePixel = Free | Blocked | Start | End | Avoid | Transparent
     deriving (Eq, Enum)
 
 newtype instance VU.Vector MazePixel = V_MazePixel (VU.Vector Word8)
@@ -74,6 +74,7 @@ instance Show MazePixel where
     show End = "E"
     show Free = "_"
     show Avoid = ","
+    show Transparent = " "
 
 type Distance = Int
 type GVal = Distance

@@ -90,13 +90,14 @@ stringToMaze = imageToMaze . fst . either error id . Png.decodePngWithPaletteAnd
 mazeToImageBS :: Maze -> BL.ByteString
 mazeToImageBS = either error id . Png.encodePalettedPng myPalette . mazeToImage
 
-myPalette :: Image PixelRGB8
-myPalette = generateImage pixels 4 1
+myPalette :: Image PixelRGBA8
+myPalette = generateImage pixels 5 1
   where
-    pixels 0 0 = PixelRGB8 0 0 0       -- Blocked
-    pixels 1 0 = PixelRGB8 255 128 128 -- End
-    pixels 2 0 = PixelRGB8 255 255 255 -- Free
-    pixels 3 0 = PixelRGB8 128 255 128 -- Start
+    pixels 0 0 = PixelRGBA8 0 0 0       255 -- Blocked
+    pixels 1 0 = PixelRGBA8 255 128 128 255 -- End
+    pixels 2 0 = PixelRGBA8 255 255 255 255 -- Free
+    pixels 3 0 = PixelRGBA8 128 255 128 255 -- Start
+    pixels 4 0 = PixelRGBA8 255 255 255   0 -- Transparent
     pixels _ _ = error "Invalid index"
 -- myPalette = matrixToImage $ Mat.fromList (1,4)
 --     [ PixelRGB8 0 0 0       -- Blocked
@@ -112,7 +113,8 @@ mazeToImage = matrixToImage . Mat.map convPal
         convPal End = 1
         convPal Free = 2
         convPal Start = 3
-        convPal Avoid = 3
+        convPal Avoid = 2
+        convPal Transparent = 4
 
 imageToMaze :: PalettedImage -> Matrix MazePixel
 imageToMaze (PalettedRGB8 img pal) = Mat.map (withPaletteRGB8 pal) $ imageToMatrix img
@@ -137,7 +139,7 @@ withPaletteRGBA8 pal idx = rgba8ToMaze $ pixelAt (palettedAsImage pal) (fromInte
 -- pixelAt (palettedAsImage pal) 1 0
 rgba8ToMaze :: PixelRGBA8 -> MazePixel
 rgba8ToMaze pix = case pix of
-    PixelRGBA8 255 255 255   0 -> Blocked -- Transparent
+    PixelRGBA8 255 255 255   0 -> Transparent -- Transparent
     PixelRGBA8   0   0   0 255 -> Blocked
     PixelRGBA8 255 128 128 255 -> End
     PixelRGBA8 255 255 255 255 -> Free
