@@ -119,7 +119,7 @@ stepAStar state@AStarState {maze, todo = MinView pos _ (cost,parent) todo, goal,
             , done = Just pos
             }
     else do
-        validNeighbors <- filterM (isAvailable maze) $ neighbors 2 (MMat.dim maze) pos
+        validNeighbors <- filterM (isAvailable maze) $ neighbors 1 (MMat.dim maze) pos
         let todo'' = foldl' updateTodo todo validNeighbors
         MMat.write maze pos Avoid
         pure $ Just state
@@ -206,6 +206,7 @@ drawPath' maze path = runST $ do
     fillPath maze' pos = do
         MMat.write maze' pos End
         mapM_ (\p -> MMat.write maze' p End) $ neighbors 1 (MMat.dim maze') pos
+        mapM_ (\p -> MMat.write maze' p End) $ neighbors 2 (MMat.dim maze') pos
 
 drawPath :: Maze -> [Pos] -> Maze
 drawPath maze path = Mat.imap upd maze

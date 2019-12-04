@@ -44,10 +44,11 @@ solveMazeFile from to = do
 
 solveTraceMaze :: FilePath -> FilePath -> FilePath -> IO ()
 solveTraceMaze from to traceFile = do
-    m <- getMaze from
-    let traceAct n = saveMaze (traceFile ++ "-" ++ show n ++ ".png")
+    m <- avoidWalls <$> getMaze from
+    let traceAct n m' = evaluate m' >> saveMaze (traceFile ++ "-" ++ show n ++ ".png") m'
     x <- runAStarTrace traceAct 100000 m
-    let img = mazeToImageBS . drawPath m $ fromMaybe (error "Unsolvable maze") x
+    let img = mazeToImageBS . drawPath' m $ fromMaybe (error "Unsolvable maze") x
+    _ <- evaluate img
     BL.writeFile to img
     pure ()
 
