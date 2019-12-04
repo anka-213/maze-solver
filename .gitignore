@@ -2,3 +2,4 @@
 maze-solver.cabal
 *~
 local/
+.DS_Store
